@@ -507,16 +507,23 @@ btnCancel.addEventListener('click', closeSigModal);
 
 btnConfirm.addEventListener('click', () => {
   if (!sigPad || sigPad.isEmpty()) { alert('Dessinez votre signature d\'abord.'); return; }
+  const pos    = pendingPos;   // snapshot before closeSigModal resets it
   const dataUrl = trimmedDataUrl(sigCanvas);
   closeSigModal();
-  placeSig(pendingPos, dataUrl);
+  if (pos) placeSig(pos, dataUrl);
   if (sigMode) toggleSignMode();
 });
 
 // trim transparent pixels for a tighter signature image
 function trimmedDataUrl(src) {
-  const ctx  = src.getContext('2d');
-  const { width: W, height: H } = src;
+  // Copy to a fresh canvas with willReadFrequently (getImageData perf)
+  const copy    = document.createElement('canvas');
+  copy.width    = src.width;
+  copy.height   = src.height;
+  const copyCtx = copy.getContext('2d', { willReadFrequently: true });
+  copyCtx.drawImage(src, 0, 0);
+  const ctx  = copyCtx;
+  const { width: W, height: H } = copy;
   const data = ctx.getImageData(0, 0, W, H).data;
   let t = H, l = W, r = 0, b = 0;
   for (let y = 0; y < H; y++) {
@@ -532,7 +539,7 @@ function trimmedDataUrl(src) {
   const out = document.createElement('canvas');
   out.width  = r - l + pad * 2;
   out.height = b - t + pad * 2;
-  out.getContext('2d').drawImage(src, l - pad, t - pad, out.width, out.height, 0, 0, out.width, out.height);
+  out.getContext('2d').drawImage(copy, l - pad, t - pad, out.width, out.height, 0, 0, out.width, out.height);
   return out.toDataURL('image/png');
 }
 
