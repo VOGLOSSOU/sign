@@ -410,7 +410,8 @@ async function handleFile(file) {
 
 // ── PDF RENDER ───────────────────────────────────────────────────────────────
 async function renderDoc(bytes) {
-  pdfDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+  // .slice() to avoid PDF.js detaching the original ArrayBuffer
+  pdfDoc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
   viewer.innerHTML = '';
   signatures = [];
   for (let i = 1; i <= pdfDoc.numPages; i++) await renderPage(i);
